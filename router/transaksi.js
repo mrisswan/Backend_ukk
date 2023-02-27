@@ -3,6 +3,14 @@ const app = express();
 const moment = require("moment");
 const transaksi = require("../models/index").transaksi;
 const detail_transaksi = require("../models/index").detail_transaksi;
+const mysql = require("mysql");
+
+const conn = mysql.createConnection({
+  host: "localhost",
+  user: "root",
+  password: "",
+  database: "kasir_cafe",
+});
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -24,22 +32,18 @@ app.get("/detail", async (req, res) => {
     });
 });
 
-// app.get("/detail/chart", async (req, res) => {
-//   detail_transaksi
-//     .findAll({
-//       include: ["transaksi", "menu"],
-//     })
-//     .then((result) => {
-//       res.json({
-//         data: result,
-//       });
-//     })
-//     .catch((error) => {
-//       res.json({
-//         message: error.message,
-//       });
-//     });
-// });
+app.get("/qtybymenu", async (req, res) => {
+  conn.query(
+    "SELECT menu.id_menu, menu.nama_menu, SUM(detail_transaksi.qty) AS total_qty FROM menu JOIN detail_transaksi ON menu.id_menu = detail_transaksi.id_menu GROUP BY menu.id_menu",
+    (err, results, fields) => {
+      if (!err) {
+        res.send(results);
+      } else {
+        console.log(err);
+      }
+    }
+  );
+});
 
 app.get("/detail/:id", async (req, res) => {
   let param = {
