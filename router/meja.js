@@ -1,11 +1,13 @@
 const express = require("express");
 const app = express();
 const meja = require("../models/index").meja;
+const auth = require("../auth");
+const SECRET_KEY = "INIPUNYAKASIR";
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-app.get("/", async (req, res) => {
+app.get("/", auth, async (req, res) => {
   meja
     .findAll()
     .then((result) => {
@@ -20,7 +22,7 @@ app.get("/", async (req, res) => {
     });
 });
 
-app.get("/:id", async (req, res) => {
+app.get("/:id", auth, async (req, res) => {
   let param = {
     id_meja: req.params.id,
   };
@@ -38,7 +40,25 @@ app.get("/:id", async (req, res) => {
     });
 });
 
-app.post("/", async (req, res) => {
+app.get("/status/:status_meja", auth, async (req, res) => {
+  let param = {
+    status_meja: req.params.status_meja,
+  };
+  meja
+    .findAll({ where: param })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.post("/", auth, async (req, res) => {
   let data = {
     nomor_meja: req.body.nomor_meja,
     status_meja: "tersedia",
@@ -58,7 +78,7 @@ app.post("/", async (req, res) => {
     });
 });
 
-app.put("/", async (req, res) => {
+app.put("/", auth, async (req, res) => {
   let param = {
     id_meja: req.body.id_meja,
   };
@@ -80,7 +100,7 @@ app.put("/", async (req, res) => {
     });
 });
 
-app.delete("/:id", async (req, res) => {
+app.delete("/:id", auth, async (req, res) => {
   let param = {
     id_meja: req.params.id,
   };

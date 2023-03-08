@@ -1,35 +1,26 @@
 const express = require("express");
 const app = express();
+const mysql = require("mysql");
 const moment = require("moment");
 const transaksi = require("../models/index").transaksi;
 const detail_transaksi = require("../models/index").detail_transaksi;
-const mysql = require("mysql");
+const menu = require("../models/index").menu;
+const meja = require("../models/index").meja;
+const user = require("../models/index").user;
+
+const { Op } = require("sequelize");
+
+const auth = require("../auth");
+const SECRET_KEY = "INIPUNYAKASIR";
+
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
 const conn = mysql.createConnection({
   host: "localhost",
   user: "root",
   password: "",
   database: "kasir_cafe",
-});
-
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-
-app.get("/detail", async (req, res) => {
-  detail_transaksi
-    .findAll({
-      include: ["transaksi", "menu"],
-    })
-    .then((result) => {
-      res.json({
-        data: result,
-      });
-    })
-    .catch((error) => {
-      res.json({
-        message: error.message,
-      });
-    });
 });
 
 app.get("/qtybymenu", async (req, res) => {
@@ -45,7 +36,24 @@ app.get("/qtybymenu", async (req, res) => {
   );
 });
 
-app.get("/detail/:id", async (req, res) => {
+app.get("/detail", auth, async (req, res) => {
+  detail_transaksi
+    .findAll({
+      include: ["transaksi", "menu"],
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.get("/tanggal/:id", auth, async (req, res) => {
   let param = {
     id_transaksi: req.params.id,
   };
@@ -66,7 +74,49 @@ app.get("/detail/:id", async (req, res) => {
     });
 });
 
-app.get("/", async (req, res) => {
+app.get("/detail/:id", auth, async (req, res) => {
+  let param = {
+    id_transaksi: req.params.id,
+  };
+  detail_transaksi
+    .findAll({
+      include: ["transaksi", "menu"],
+      where: param,
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.get("/detail/menu/:id", auth, async (req, res) => {
+  let param = {
+    id_menu: req.params.id,
+  };
+  detail_transaksi
+    .findAll({
+      include: ["transaksi", "menu"],
+      where: param,
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.get("/", auth, async (req, res) => {
   transaksi
     .findAll({
       include: ["user", "meja"],
@@ -82,8 +132,75 @@ app.get("/", async (req, res) => {
       });
     });
 });
+app.get("/user/:nama_user", auth, async (req, res) => {
+  let param = {
+    nama_user: req.params.nama_user,
+  };
+  transaksi
+    .findAll({
+      include: ["user", "meja"],
+      where: {
+        [Op.or]: [
+          { "$user.nama_user$": { [Op.like]: `%${param.nama_user}%` } },
+        ],
+      },
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
 
-app.get("/:id", async (req, res) => {
+app.get("/riwayat/:status", auth, async (req, res) => {
+  let param = {
+    status: req.params.status,
+  };
+  transaksi
+    .findAll({
+      include: ["user", "meja"],
+      where: param,
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.get("/riwayat/:status/:id", auth, async (req, res) => {
+  let param = {
+    status: req.params.status,
+    id_user: req.params.id,
+  };
+  transaksi
+    .findAll({
+      include: ["user", "meja"],
+      where: param,
+    })
+    .then((result) => {
+      res.json({
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.get("/:id", auth, async (req, res) => {
   let param = {
     id_transaksi: req.params.id,
   };
@@ -104,7 +221,7 @@ app.get("/:id", async (req, res) => {
     });
 });
 
-app.post("/", async (req, res) => {
+app.post("/", auth, async (req, res) => {
   let data_transaksi = {
     tgl_transaksi: moment().format("YYYY-MM-DD"),
     id_user: req.body.id_user,
@@ -141,7 +258,7 @@ app.post("/", async (req, res) => {
     });
 });
 
-app.put("/", async (req, res) => {
+app.put("/", auth, async (req, res) => {
   let param = {
     id_transaksi: req.body.id_transaksi,
   };
@@ -162,7 +279,7 @@ app.put("/", async (req, res) => {
     });
 });
 
-app.delete("/:id", async (req, res) => {
+app.delete("/:id", auth, async (req, res) => {
   let param = {
     id_transaksi: req.params.id,
   };
