@@ -14,6 +14,7 @@ const auth = require("../auth");
 const SECRET_KEY = "INIPUNYAKASIR";
 
 app.use(express.urlencoded({ extended: true }));
+const { sequelize } = require("../models/index");
 app.use(express.json());
 
 const conn = mysql.createConnection({
@@ -21,19 +22,6 @@ const conn = mysql.createConnection({
   user: "root",
   password: "",
   database: "kasir_cafe",
-});
-
-app.get("/qtybymenu", async (req, res) => {
-  conn.query(
-    "SELECT menu.id_menu, menu.nama_menu, SUM(detail_transaksi.qty) AS total_qty FROM menu JOIN detail_transaksi ON menu.id_menu = detail_transaksi.id_menu GROUP BY menu.id_menu",
-    (err, results, fields) => {
-      if (!err) {
-        res.send(results);
-      } else {
-        console.log(err);
-      }
-    }
-  );
 });
 
 app.get("/detail", auth, async (req, res) => {
@@ -53,14 +41,15 @@ app.get("/detail", auth, async (req, res) => {
     });
 });
 
-app.get("/tanggal/:id", auth, async (req, res) => {
-  let param = {
-    id_transaksi: req.params.id,
-  };
-  detail_transaksi
+app.get("/tanggal/:awal/:akhir", auth, async (req, res) => {
+  transaksi
     .findAll({
-      include: ["transaksi", "menu"],
-      where: param,
+      include: ["user", "meja"],
+      where: {
+        tgl_transaksi: {
+          [Op.between]: [req.params.awal, req.params.akhir],
+        },
+      },
     })
     .then((result) => {
       res.json({
@@ -132,6 +121,20 @@ app.get("/", auth, async (req, res) => {
       });
     });
 });
+
+app.get("/qtybymenu", async (req, res) => {
+  conn.query(
+    "SELECT menu.id_menu, menu.nama_menu, SUM(detail_transaksi.qty) AS total_qty FROM menu JOIN detail_transaksi ON menu.id_menu = detail_transaksi.id_menu GROUP BY menu.id_menu LIMIT 5",
+    (err, results, fields) => {
+      if (!err) {
+        res.send(results);
+      } else {
+        console.log(err);
+      }
+    }
+  );
+});
+
 app.get("/user/:nama_user", auth, async (req, res) => {
   let param = {
     nama_user: req.params.nama_user,
@@ -250,6 +253,45 @@ app.post("/", auth, async (req, res) => {
             message: error.message,
           });
         });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.post("/detail/add", auth, async (req, res) => {
+  let detail = req.body.detail_transaksi;
+  detail_transaksi
+    .bulkCreate(detail)
+    .then((result) => {
+      res.json({
+        message: "Data Berhasil Ditambahkan",
+        data: result,
+      });
+    })
+    .catch((error) => {
+      res.json({
+        message: error.message,
+      });
+    });
+});
+
+app.put("/ubahqty", auth, async (req, res) => {
+  let param = {
+    id_transaksi: req.body.id_transaksi,
+    id_menu: req.body.id_menu,
+  };
+  let data = {
+    qty: req.body.qty,
+  };
+  detail_transaksi
+    .update(data, { where: param })
+    .then((result) => {
+      res.json({
+        message: "Data Berhasil Diperbarui",
+      });
     })
     .catch((error) => {
       res.json({

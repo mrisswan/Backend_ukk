@@ -23,5 +23,5 @@ app.use("/cafe/transaksi", transaksi);
 
 //run server
 app.listen(4040, () => {
-  console.log("server run on port 8080");
+  console.log("server run on port 4040");
 });
